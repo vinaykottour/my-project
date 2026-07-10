@@ -13,21 +13,25 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Copy index.html to Staging EC2
+      - name: Copy files to Staging EC2
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.STAGING_HOST }}
           username: ${{ secrets.STAGING_USER }}
           key: ${{ secrets.STAGING_SSH_KEY }}
-          source: "index.html"
+          source: "index.html,Dockerfile"
           target: "/home/ubuntu/"
 
-      - name: Move file to Nginx folder
+      - name: Build and Run Docker on Staging EC2
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: ${{ secrets.STAGING_HOST }}
           username: ${{ secrets.STAGING_USER }}
           key: ${{ secrets.STAGING_SSH_KEY }}
           script: |
-            sudo cp /home/ubuntu/index.html /var/www/html/index.html
-            echo "✅ Deployed to STAGING successfully!"
+            cd /home/ubuntu
+            docker stop portfolio || true
+            docker rm portfolio || true
+            docker build -t my-portfolio:latest .
+            docker run -d -p 80:80 --name portfolio my-portfolio:latest
+            echo "✅ Staging deployment successful!"
