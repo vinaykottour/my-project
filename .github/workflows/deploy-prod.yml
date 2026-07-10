@@ -24,7 +24,9 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/my-portfolio:latest
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/my-portfolio:latest
+            ${{ secrets.DOCKER_USERNAME }}/my-portfolio:${{ github.run_number }}
 
       - name: Deploy to Prod EC2
         uses: appleboy/ssh-action@v0.1.10
@@ -37,4 +39,4 @@ jobs:
             docker rm portfolio || true
             docker pull ${{ secrets.DOCKER_USERNAME }}/my-portfolio:latest
             docker run -d -p 80:80 --name portfolio ${{ secrets.DOCKER_USERNAME }}/my-portfolio:latest
-            echo "✅ Prod deployment successful!"
+            echo "✅ Deployed version ${{ github.run_number }} to prod!"
