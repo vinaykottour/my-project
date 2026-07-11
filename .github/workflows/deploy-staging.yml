@@ -6,32 +6,35 @@ on:
       - staging
 
 jobs:
-  deploy:
+  build-and-push:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Copy files to Staging EC2
-        uses: appleboy/scp-action@v0.1.7
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
         with:
-          host: ${{ secrets.STAGING_HOST }}
-          username: ${{ secrets.STAGING_USER }}
-          key: ${{ secrets.STAGING_SSH_KEY }}
-          source: "index.html,Dockerfile"
-          target: "/home/ubuntu/"
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and Run Docker on Staging EC2
+      - name: Build and Push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/my-portfolio:staging
+
+      - name: Deploy to Staging EC2
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: ${{ secrets.STAGING_HOST }}
           username: ${{ secrets.STAGING_USER }}
           key: ${{ secrets.STAGING_SSH_KEY }}
           script: |
-            cd /home/ubuntu
             docker stop portfolio || true
             docker rm portfolio || true
-            docker build -t my-portfolio:latest .
-            docker run -d -p 80:80 --name portfolio my-portfolio:latest
+            docker pull ${{ secrets.DOCKER_USERNAME }}/my-portfolio:staging
+            docker run -d -p 80:80 --name portfolio ${{ secrets.DOCKER_USERNAME }}/my-portfolio:staging
             echo "✅ Staging deployment successful!"
