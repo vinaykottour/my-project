@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: portfolio-deployment
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: portfolio
+  template:
+    metadata:
+      labels:
+        app: portfolio
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - portfolio
+            topologyKey: "kubernetes.io/hostname"
+      containers:
+      - name: portfolio
+        image: vinaykottour/my-portfolio:latest
+        ports:
+        - containerPort: 80
+        env:
+        - name: ADMIN_EMAIL
+          valueFrom:
+            secretKeyRef:
+              name: portfolio-secret
+              key: admin-email
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: portfolio-secret
+              key: api-key
